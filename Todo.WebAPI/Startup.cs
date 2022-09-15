@@ -1,18 +1,15 @@
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
+using System.Reflection;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using Todo.WebAPI.Domain;
+using Todo.WebAPI.Services;
 
 namespace Todo.WebAPI
 {
@@ -30,12 +27,28 @@ namespace Todo.WebAPI
         {
             services.AddControllers();
             services.AddAutoMapper(GetType().Assembly);
-            services.AddMemoryCache();
             services.AddSwaggerGen();
 
             services.AddScoped<IDynamoDBContext, DynamoDBContext>();
             services.AddScoped<IAmazonDynamoDB, AmazonDynamoDBClient>();
+
+            services.AddScoped<IDateTimeProvider, DateTimeProvider>();
+
+            ScanForScoped(services, GetType().Assembly);
         }
+
+        private void ScanForScoped(IServiceCollection services, Assembly assembly)
+        {
+            var types =
+                assembly
+                    .GetTypes()
+                    .Where(t => t.IsClass)
+                    .Where(t => t.GetInterface(nameof(IScoped)) != null);
+
+            foreach (var type in types)
+                services.AddScoped(type);
+        }
+
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
