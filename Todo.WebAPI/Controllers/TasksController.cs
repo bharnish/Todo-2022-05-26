@@ -21,16 +21,15 @@ namespace Todo.WebAPI.Controllers
         private readonly IMapper _mapper;
         private readonly TodoParser _parser;
         private readonly TodoMutator _mutator;
-        private readonly IDateTimeProvider _dateTimeProvider;
+        private readonly TodoFilter _todoFilter;
 
-        public TasksController(IDynamoDBContext context, IMapper mapper, TodoParser parser, TodoMutator mutator,
-            IDateTimeProvider dateTimeProvider)
+        public TasksController(IDynamoDBContext context, IMapper mapper, TodoParser parser, TodoMutator mutator, TodoFilter todoFilter)
         {
             _context = context;
             _mapper = mapper;
             _parser = parser;
             _mutator = mutator;
-            _dateTimeProvider = dateTimeProvider;
+            _todoFilter = todoFilter;
         }
 
         [FromHeader] public string DbKey { get; set; }
@@ -41,16 +40,16 @@ namespace Todo.WebAPI.Controllers
         {
             var s = await Load(DbKey);
 
-            var todos = s.Select(_parser.Parse);
+            var todos = s.Select(_parser.Parse).ToList();
 
             var completedCount = todos.Count(t => t.IsCompletedToday);
 
-            todos = Filter(todos, options);
+            var filtered = _todoFilter.Filter(todos, options);
 
             var rv = new ViewModelDTO
             {
                 CompletedCount = completedCount,
-                Todos = todos.Select(_mapper.Map<TodoDTO>)
+                Todos = filtered.OrderBy(PrioritySort).Select(_mapper.Map<TodoDTO>)
             };
 
             return Ok(rv);
@@ -59,48 +58,18 @@ namespace Todo.WebAPI.Controllers
         string PrioritySort(Domain.Todo todo)
         {
             if (todo.Priority == null)
-                return "z";
+                return "zz";
 
             return todo.Priority;
         }
 
         [HttpGet("text")]
         [ProducesResponseType(200, Type = typeof(string))]
-        public async Task<IActionResult> GetText([FromQuery] FilterOptionsDTO options)
+        public async Task<IActionResult> GetText()
         {
-            var s = await Load(DbKey);
+            var todos = await Load(DbKey);
 
-            var todos = s.Select(_parser.Parse);
-
-            todos = Filter(todos, options);
-
-            return Ok(string.Join("\n", todos.Select(x => x.Raw)));
-        }
-
-        IEnumerable<Domain.Todo> Filter(IEnumerable<Domain.Todo> todos, FilterOptionsDTO options)
-        {
-            if (!string.IsNullOrEmpty(options.Filters))
-            {
-                var filters = options.Filters.Split('\n').Select(x => x.ToLower());
-
-                foreach (var filter in filters)
-                {
-                    if (filter.StartsWith("-"))
-                        todos = todos.Where(x => !x.Raw.ToLower().Contains(filter.Substring(1)));
-                    else
-                        todos = todos.Where(x => x.Raw.ToLower().Contains(filter));
-                }
-            }
-
-            if (!options.Completed)
-                todos = todos.Where(x => !x.IsCompleted);
-
-            if (!options.Future)
-                todos = todos.Where(x => !x.IsFutureThreshold);
-
-            todos = todos.OrderBy(x => x.IsCompleted);
-
-            return todos;
+            return Ok(string.Join("\n", todos.Select(x => x.Data)));
         }
 
         [HttpGet("{id}")]
@@ -236,34 +205,29 @@ namespace Todo.WebAPI.Controllers
         {
             var recs = await Load(DbKey);
 
-            var todos = recs.Select(_parser.Parse);
+            var todos = recs.Select(_parser.Parse).ToList();
 
             var completedCount = todos.Count(t => t.IsCompletedToday);
 
-            todos = Filter(todos, options);
+            var filtered = _todoFilter.Filter(todos, options);
 
-            IEnumerable<GroupingDTO> group;
-
-            if (groupBy == "context")
-                group = Group(todos, x => x.Contexts);
-            else if (groupBy == "project")
-                group = Group(todos, x => x.Projects);
-            else if (groupBy == "dueDate")
-                group = Group(todos,
-                    x => new[] {x.DueDate == null ? "" : x.DueDate.Value.ToString(Patterns.DateFormat)});
-            else if (groupBy == "threshold")
-                group = Group(todos,
-                    x => new[] {x.ThresholdDate == null ? "" : x.ThresholdDate.Value.ToString(Patterns.DateFormat)});
-            else if (groupBy == "priority")
-                group = Group(todos, x => new[] {x.Priority ?? ""});
-            else
-                return BadRequest();
+            var group = groupBy switch
+            {
+                "context" => Group(filtered, x => x.Contexts),
+                "project" => Group(filtered, x => x.Projects),
+                "dueDate" => Group(filtered,
+                    x => new[] {x.DueDate == null ? "" : x.DueDate.Value.ToString(Patterns.DateFormat)}),
+                "threshold" => Group(filtered,
+                    x => new[] {x.ThresholdDate == null ? "" : x.ThresholdDate.Value.ToString(Patterns.DateFormat)}),
+                "priority" => Group(filtered, x => new[] {x.Priority ?? ""}),
+                _ => throw new Exception("Invalid GroupBy")
+            };
 
             var rv =
                 new GroupingViewModelDTO
                 {
                     CompletedCount = completedCount,
-                    Groupings = group.OrderBy(g => g.Key)
+                    Groupings = group.OrderBy(g => g.Key.StartsWith("~") ? "zz" : g.Key)
                 };
 
             return Ok(rv);
@@ -281,7 +245,7 @@ namespace Todo.WebAPI.Controllers
 
                 if (!keys.Any() || keys.All(string.IsNullOrEmpty))
                 {
-                    keys = new[] {"-none-"};
+                    keys = new[] {"~none~"};
                 }
 
                 foreach (var key in keys)
@@ -297,7 +261,8 @@ namespace Todo.WebAPI.Controllers
                 select new GroupingDTO
                 {
                     Key = kvp.Key,
-                    Data = kvp.Value.Select(_mapper.Map<TodoDTO>).ToArray()
+                    Data = kvp.Value.Select(_mapper.Map<TodoDTO>).ToArray(),
+                    IsAllWaitingFor = kvp.Value.All(x => x.IsWaitingFor),
                 };
 
             return gs;

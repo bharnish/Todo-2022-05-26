@@ -32,7 +32,7 @@ namespace Todo.WebAPI
             services.AddScoped<IDynamoDBContext, DynamoDBContext>();
             services.AddScoped<IAmazonDynamoDB, AmazonDynamoDBClient>();
 
-            services.AddScoped<IDateTimeProvider, DateTimeProvider>();
+            services.AddScoped<IDateTimeProvider, EdtDateTimeProvider>();
 
             ScanForScoped(services, GetType().Assembly);
         }

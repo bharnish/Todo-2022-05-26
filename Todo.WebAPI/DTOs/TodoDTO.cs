@@ -15,6 +15,9 @@ namespace Todo.WebAPI.DTOs
 
         public bool HasPriority { get; set; }
 
+        public bool IsWaitingFor { get; set; }
+        public bool IsProject { get; set; }
+
         public bool IsThresholdToday { get; set; }
         public bool IsThresholdPast { get; set; }
 

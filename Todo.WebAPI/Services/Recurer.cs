@@ -47,40 +47,25 @@ namespace Todo.WebAPI.Services
             if (!recurTraits.strict)
                 date = DateTime.Today;
 
-            switch (recurTraits.period)
+            return recurTraits.period switch
             {
-                case 'd':
-                    date = date.AddDays(recurTraits.num);
-                    break;
-                case 'w':
-                    date = date.AddDays(recurTraits.num * 7);
-                    break;
-                case 'm': 
-                    date = date.AddMonths(recurTraits.num);
-                    break;
-                case 'y': 
-                    date = date.AddYears(recurTraits.num);
-                    break;
-            }
-
-            return date;
-
+                'd' => date.AddDays(recurTraits.num),
+                'w' => date.AddDays(recurTraits.num * 7),
+                'm' => date.AddMonths(recurTraits.num),
+                'y' => date.AddYears(recurTraits.num),
+                _ => date,
+            };
         }
 
         private (bool strict, int num, char period) ParseRecur(string raw, Regex regex)
         {
-            var recur = regex.Match(raw).Groups["date"].Value.Trim() ?? "";
+            var g = regex.Match(raw).Groups;
 
-            var strict = recur.StartsWith("+");
-            if (strict)
-                recur = recur.Substring(1);
+            var strict = g["strict"].Value == "+";
+            var quantity = int.Parse(g["quantity"].Value);
+            var period = g["period"].Value[0];
 
-            var period = recur.Last();
-            recur = recur.Substring(0, recur.Length - 1);
-
-            var num = int.Parse(recur);
-
-            return (strict, num, period);
+            return (strict, quantity, period);
         }
     }
 }

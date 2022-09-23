@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Todo.WebAPI.Domain
 {
@@ -73,6 +74,9 @@ namespace Todo.WebAPI.Domain
         public IEnumerable<string> Projects { get; set; }
         public string Priority { get; set; }
         public bool HasPriority => Priority != null && !IsCompleted;
+
+        public bool IsWaitingFor => Contexts.Any(c => c.ToLower() == "@waitingfor");
+        public bool IsProject => Contexts.Any(c => c.ToLower() == "@project");
 
         public DateTime Today { get; set; }
     }

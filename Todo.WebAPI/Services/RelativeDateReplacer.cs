@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Todo.WebAPI.Domain;
 
@@ -112,23 +113,14 @@ namespace Todo.WebAPI.Services
 
                 var date = _dateTimeProvider.Today;
 
-                switch (period)
+                date = period switch
                 {
-                    case 'd':
-                        date = date.AddDays(quantity);
-                        break;
-                    case 'w':
-                        date = date.AddDays(quantity * 7);
-                        break;
-                    case 'm':
-                        date = date.AddMonths(quantity);
-                        break;
-                    case 'y':
-                        date = date.AddYears(quantity);
-                        break;
-                    default:
-                        throw new Exception("Invalid period");
-                }
+                    'd' => date.AddDays(quantity),
+                    'w' => date.AddDays(quantity * 7),
+                    'm' => date.AddMonths(quantity),
+                    'y' => date.AddYears(quantity),
+                    _ => throw new Exception("Invalid period"),
+                };
 
                 raw = regex.Replace(raw, prefix + date.ToString(Patterns.DateFormat));
 

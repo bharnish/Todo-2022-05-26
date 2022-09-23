@@ -9,5 +9,6 @@ namespace Todo.WebAPI.DTOs
     {
         public string Key { get; set; }
         public TodoDTO[] Data { get; set; }
+        public bool IsAllWaitingFor { get; set; }
     }
 }
