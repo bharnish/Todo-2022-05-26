@@ -6,7 +6,7 @@ namespace Todo.WebAPI.DTOs
     {
         public Mappings()
         {
-            CreateMap<Domain.Todo, TodoDTO>();
+            CreateMap<Data.Todo, TodoDTO>();
         }
     }
 }

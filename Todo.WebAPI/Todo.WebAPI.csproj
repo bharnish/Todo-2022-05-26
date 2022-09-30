@@ -7,10 +7,15 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Amazon.Lambda.AspNetCoreServer" Version="7.0.1" />
+    <PackageReference Include="Amazon.Lambda.AspNetCoreServer" Version="7.2.0" />
     <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="11.0.0" />
-    <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.3.41" />
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.3.1" />
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.3.1" />
+    <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.5.8" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.4.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.4.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Todo.Core\Todo.Core.csproj" />
+    <ProjectReference Include="..\Todo.Data\Todo.Data.csproj" />
+    <ProjectReference Include="..\Todo.Services\Todo.Services.csproj" />
   </ItemGroup>
 </Project>

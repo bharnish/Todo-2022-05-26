@@ -1,14 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
 using Amazon.DynamoDBv2.DataModel;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using Todo.WebAPI.Domain;
+using Todo.Core;
+using Todo.Data;
+using Todo.Services;
 using Todo.WebAPI.DTOs;
 using Todo.WebAPI.Services;
 
@@ -17,19 +16,21 @@ namespace Todo.WebAPI.Controllers
     [Route("api/[controller]")]
     public class TasksController : ControllerBase
     {
-        private readonly IDynamoDBContext _context;
         private readonly IMapper _mapper;
-        private readonly TodoParser _parser;
-        private readonly TodoMutator _mutator;
-        private readonly TodoFilter _todoFilter;
+        private readonly ITodoParser _parser;
+        private readonly ITodoMutator _mutator;
+        private readonly ITodoFilter _todoFilter;
+        private readonly IRepo _repo;
 
-        public TasksController(IDynamoDBContext context, IMapper mapper, TodoParser parser, TodoMutator mutator, TodoFilter todoFilter)
+        private static string NoneKey = "~none~";
+
+        public TasksController(IMapper mapper, ITodoParser parser, ITodoMutator mutator, ITodoFilter todoFilter, IRepo repo)
         {
-            _context = context;
             _mapper = mapper;
             _parser = parser;
             _mutator = mutator;
             _todoFilter = todoFilter;
+            _repo = repo;
         }
 
         [FromHeader] public string DbKey { get; set; }
@@ -38,7 +39,7 @@ namespace Todo.WebAPI.Controllers
         [ProducesResponseType(200, Type = typeof(ViewModelDTO))]
         public async Task<IActionResult> Get([FromQuery] FilterOptionsDTO options)
         {
-            var s = await Load(DbKey);
+            var s = await _repo.Load(DbKey);
 
             var todos = s.Select(_parser.Parse).ToList();
 
@@ -55,7 +56,7 @@ namespace Todo.WebAPI.Controllers
             return Ok(rv);
         }
 
-        string PrioritySort(Domain.Todo todo)
+        string PrioritySort(Data.Todo todo)
         {
             if (todo.Priority == null)
                 return "zz";
@@ -67,7 +68,7 @@ namespace Todo.WebAPI.Controllers
         [ProducesResponseType(200, Type = typeof(string))]
         public async Task<IActionResult> GetText()
         {
-            var todos = await Load(DbKey);
+            var todos = await _repo.Load(DbKey);
 
             return Ok(string.Join("\n", todos.Select(x => x.Data)));
         }
@@ -76,7 +77,7 @@ namespace Todo.WebAPI.Controllers
         [ProducesResponseType(200, Type = typeof(TodoDTO))]
         public async Task<IActionResult> Get(string id)
         {
-            var records = await Load(DbKey);
+            var records = await _repo.Load(DbKey);
             var record = records.FirstOrDefault(x => x.Id == id);
             if (record == null) return NotFound();
 
@@ -89,7 +90,7 @@ namespace Todo.WebAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] StringDTO value, [FromQuery] bool replace = false)
         {
-            var list = await Load(DbKey);
+            var list = await _repo.Load(DbKey);
 
             var data = value.Value.Split('\n');
 
@@ -105,7 +106,7 @@ namespace Todo.WebAPI.Controllers
 
             list.AddRange(records);
 
-            await Save(DbKey, list);
+            await _repo.Save(DbKey, list);
 
             return Ok();
         }
@@ -113,13 +114,13 @@ namespace Todo.WebAPI.Controllers
         [HttpPost("{id}/postpone")]
         public async Task<IActionResult> Postpone(string id, [FromQuery] int ndays)
         {
-            var recs = await Load(DbKey);
+            var recs = await _repo.Load(DbKey);
             var rec = recs.FirstOrDefault(x => x.Id == id);
             if (rec == null) return NotFound();
 
             _mutator.Postpone(rec, ndays);
 
-            await Save(DbKey, recs);
+            await _repo.Save(DbKey, recs);
 
             return Ok();
         }
@@ -127,13 +128,13 @@ namespace Todo.WebAPI.Controllers
         [HttpPost("{id}/postponeThreshold")]
         public async Task<IActionResult> PostponeThreshold(string id, [FromQuery] int ndays)
         {
-            var recs = await Load(DbKey);
+            var recs = await _repo.Load(DbKey);
             var rec = recs.FirstOrDefault(x => x.Id == id);
             if (rec == null) return NotFound();
 
             _mutator.PostponeThreshold(rec, ndays);
 
-            await Save(DbKey, recs);
+            await _repo.Save(DbKey, recs);
 
             return Ok();
         }
@@ -141,7 +142,7 @@ namespace Todo.WebAPI.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Put(string id, [FromBody] StringDTO value)
         {
-            var list = await Load(DbKey);
+            var list = await _repo.Load(DbKey);
             var record = list.FirstOrDefault(x => x.Id == id);
             if (record == null) return NotFound();
 
@@ -149,7 +150,7 @@ namespace Todo.WebAPI.Controllers
 
             record = _mutator.ReplaceRelativeDates(record);
 
-            await Save(DbKey, list);
+            await _repo.Save(DbKey, list);
 
             return Ok();
         }
@@ -157,11 +158,11 @@ namespace Todo.WebAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
         {
-            var list = await Load(DbKey);
+            var list = await _repo.Load(DbKey);
 
             list.RemoveAll(x => x.Id == id);
 
-            await Save(DbKey, list);
+            await _repo.Save(DbKey, list);
 
             return Ok();
         }
@@ -169,7 +170,7 @@ namespace Todo.WebAPI.Controllers
         [HttpPut("{id}/completed")]
         public async Task<IActionResult> MarkCompleted(string id, [FromQuery] bool isCompleted)
         {
-            var recs = await Load(DbKey);
+            var recs = await _repo.Load(DbKey);
             var rec = recs.FirstOrDefault(x => x.Id == id);
             if (rec == null) return NotFound();
 
@@ -177,7 +178,7 @@ namespace Todo.WebAPI.Controllers
             foreach (var dbRecord in newRecords)
                 recs.Add(dbRecord);
 
-            await Save(DbKey, recs);
+            await _repo.Save(DbKey, recs);
 
             return Ok();
         }
@@ -185,7 +186,7 @@ namespace Todo.WebAPI.Controllers
         [HttpDelete("completed")]
         public async Task<IActionResult> DeleteCompleted()
         {
-            var recs = await Load(DbKey);
+            var recs = await _repo.Load(DbKey);
 
             var todos = recs.Select(_parser.Parse).ToArray();
 
@@ -194,7 +195,7 @@ namespace Todo.WebAPI.Controllers
                 recs.RemoveAll(x => x.Id == todo.Id);
             }
 
-            await Save(DbKey, recs);
+            await _repo.Save(DbKey, recs);
 
             return Ok();
         }
@@ -203,7 +204,7 @@ namespace Todo.WebAPI.Controllers
         [ProducesResponseType(200, Type = typeof(GroupingViewModelDTO))]
         public async Task<IActionResult> GroupBy([FromRoute] string groupBy, [FromQuery] FilterOptionsDTO options)
         {
-            var recs = await Load(DbKey);
+            var recs = await _repo.Load(DbKey);
 
             var todos = recs.Select(_parser.Parse).ToList();
 
@@ -227,15 +228,17 @@ namespace Todo.WebAPI.Controllers
                 new GroupingViewModelDTO
                 {
                     CompletedCount = completedCount,
-                    Groupings = group.OrderBy(g => g.Key.StartsWith("~") ? "zz" : g.Key)
+                    Groupings = group.OrderBy(SortNoneLast)
                 };
 
             return Ok(rv);
+
+            string SortNoneLast(GroupingDTO g) => g.Key == NoneKey ? "zz" : g.Key;
         }
 
-        private IEnumerable<GroupingDTO> Group(IEnumerable<Domain.Todo> todos, Func<Domain.Todo, IEnumerable<string>> func)
+        private IEnumerable<GroupingDTO> Group(IEnumerable<Data.Todo> todos, Func<Data.Todo, IEnumerable<string>> func)
         {
-            var d = new Dictionary<string, List<Domain.Todo>>();
+            var d = new Dictionary<string, List<Data.Todo>>();
 
             foreach (var todo in todos.OrderBy(PrioritySort))
             {
@@ -245,13 +248,13 @@ namespace Todo.WebAPI.Controllers
 
                 if (!keys.Any() || keys.All(string.IsNullOrEmpty))
                 {
-                    keys = new[] {"~none~"};
+                    keys = new[] {NoneKey};
                 }
 
                 foreach (var key in keys)
                 {
                     if (!d.TryGetValue(key, out var list))
-                        d.Add(key, list = new List<Domain.Todo>());
+                        d.Add(key, list = new List<Data.Todo>());
                     list.Add(todo);
                 }
             }
@@ -266,135 +269,6 @@ namespace Todo.WebAPI.Controllers
                 };
 
             return gs;
-        }
-
-        private async Task<List<DBRecord>> Load(string dbkey)
-        {
-            var id = BuildId(dbkey);
-            var db = await _context.LoadAsync<DB>(id);
-            if (db == null) return new List<DBRecord>();
-
-            var (k, iv) = GetKeyAndIV(dbkey, db.Salt);
-
-            return await Decrypt(db.Data, k, iv);
-        }
-
-        private async Task Save(string dbkey, IEnumerable<DBRecord> data)
-        {
-            var id = BuildId(DbKey);
-
-            if (!data.Any())
-            {
-                await RemoveRecord();
-                return;
-            }
-
-            var salt = GenerateSalt();
-            var (k, iv) = GetKeyAndIV(DbKey, salt);
-
-            var s = await Encrypt(data, k, iv);
-
-            var db = new DB
-            {
-                DbKey = id,
-                Data = s,
-                Salt = salt,
-                Updated = DateTime.Now,
-            };
-
-            await _context.SaveAsync(db);
-
-            async Task RemoveRecord()
-            {
-                var tmp = new DB
-                {
-                    DbKey = id,
-                };
-                await _context.DeleteAsync(tmp);
-            }
-        }
-
-        static async Task<List<DBRecord>> Decrypt(string input, byte[] key, byte[] iv)
-        {
-            using var aes = Aes.Create();
-            aes.Key = key;
-            aes.IV = iv;
-
-
-            await using var ms = new MemoryStream(Decode(input));
-            await using var cs = new CryptoStream(ms, aes.CreateDecryptor(), CryptoStreamMode.Read);
-            using var sr = new StreamReader(cs);
-
-            var lines = new List<DBRecord>();
-            while (true)
-            {
-                var id = await sr.ReadLineAsync();
-                if (id == null) break;
-
-                var data = await sr.ReadLineAsync();
-                lines.Add(new DBRecord {Id = id, Data = data});
-            }
-
-            return lines;
-        }
-
-        static async Task<string> Encrypt(IEnumerable<DBRecord> input, byte[] key, byte[] iv)
-        {
-            using var aes = Aes.Create();
-            aes.Key = key;
-            aes.IV = iv;
-
-            await using var ms = new MemoryStream();
-            await using (var cs = new CryptoStream(ms, aes.CreateEncryptor(), CryptoStreamMode.Write))
-            await using (var sw = new StreamWriter(cs))
-            {
-                foreach (var line in input)
-                {
-                    await sw.WriteLineAsync(line.Id);
-                    await sw.WriteLineAsync(line.Data);
-                }
-            }
-
-            return Encode(ms.ToArray());
-        }
-
-        static string GenerateSalt()
-        {
-            using var rng = RandomNumberGenerator.Create();
-
-            var buffer = new byte[SALT_LEN_BYTES];
-
-            rng.GetBytes(buffer);
-
-            return Encode(buffer);
-        }
-
-        const int SALT_LEN_BYTES = 16;
-        const int IV_LEN_BYTES = 16;
-        const int KEY_LEN_BYTES = 32;
-
-        static (byte[], byte[]) GetKeyAndIV(string password, string salt)
-        {
-            var saltBytes = Decode(salt);
-            using var pbkdf = new Rfc2898DeriveBytes(password, saltBytes, 10000);
-
-            var key = pbkdf.GetBytes(KEY_LEN_BYTES);
-            var iv = pbkdf.GetBytes(IV_LEN_BYTES);
-
-            return (key, iv);
-        }
-
-        static string Encode(byte[] input) => Convert.ToBase64String(input);
-        static byte[] Decode(string input) => Convert.FromBase64String(input);
-
-        static string BuildId(string key)
-        {
-            var buffer = Encoding.UTF8.GetBytes(key);
-
-            using var sha1 = SHA1.Create();
-            var hashed = sha1.ComputeHash(buffer);
-
-            return Encode(hashed);
         }
     }
 }

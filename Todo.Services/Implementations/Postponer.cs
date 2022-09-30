@@ -1,13 +1,13 @@
-using Todo.WebAPI.Domain;
+using Todo.Data;
 
-namespace Todo.WebAPI.Services
+namespace Todo.Services.Implementations
 {
-    public class Postponer : IScoped
+    public class Postponer : IPostponer
     {
-        private readonly DateParser _dateParser;
-        private readonly DateReplacer _dateReplacer;
+        private readonly IDateParser _dateParser;
+        private readonly IDateReplacer _dateReplacer;
 
-        public Postponer(DateParser dateParser, DateReplacer dateReplacer)
+        public Postponer(IDateParser dateParser, IDateReplacer dateReplacer)
         {
             _dateParser = dateParser;
             _dateReplacer = dateReplacer;

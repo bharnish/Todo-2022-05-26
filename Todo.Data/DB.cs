@@ -1,7 +1,7 @@
 using System;
 using Amazon.DynamoDBv2.DataModel;
 
-namespace Todo.WebAPI.Domain
+namespace Todo.Data
 {
     [DynamoDBTable("todo-2022-05-26")]
     public class DB

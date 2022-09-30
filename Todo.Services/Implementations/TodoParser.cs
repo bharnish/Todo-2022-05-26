@@ -1,16 +1,17 @@
-using Todo.WebAPI.Domain;
+using Todo.Core;
+using Todo.Data;
 
-namespace Todo.WebAPI.Services
+namespace Todo.Services.Implementations
 {
-    public class TodoParser  : IScoped
+    public class TodoParser  : IScoped, ITodoParser
     {
-        private readonly DateParser _dateParser;
-        private readonly ContextParser _contextParser;
-        private readonly ProjectParser _projectParser;
-        private readonly PriorityParser _priorityParser;
+        private readonly IDateParser _dateParser;
+        private readonly IContextParser _contextParser;
+        private readonly IProjectParser _projectParser;
+        private readonly IPriorityParser _priorityParser;
         private readonly IDateTimeProvider _dateTimeProvider;
 
-        public TodoParser(DateParser dateParser, ContextParser contextParser, ProjectParser projectParser, PriorityParser priorityParser, IDateTimeProvider dateTimeProvider)
+        public TodoParser(IDateParser dateParser, IContextParser contextParser, IProjectParser projectParser, IPriorityParser priorityParser, IDateTimeProvider dateTimeProvider)
         {
             _dateParser = dateParser;
             _contextParser = contextParser;
@@ -19,11 +20,11 @@ namespace Todo.WebAPI.Services
             _dateTimeProvider = dateTimeProvider;
         }
 
-        public Domain.Todo Parse(DBRecord record)
+        public Data.Todo Parse(DBRecord record)
         {
             var raw = record.Data;
 
-            var todo = new Domain.Todo
+            var todo = new Data.Todo
             {
                 Id = record.Id,
                 Raw = raw,

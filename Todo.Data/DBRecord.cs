@@ -1,6 +1,6 @@
 using System;
 
-namespace Todo.WebAPI.Domain
+namespace Todo.Data
 {
     public class DBRecord
     {

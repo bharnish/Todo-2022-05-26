@@ -1,9 +1,9 @@
 using System.Text.RegularExpressions;
-using Todo.WebAPI.Domain;
+using Todo.Core;
 
-namespace Todo.WebAPI.Services
+namespace Todo.Services.Implementations
 {
-    public class PriorityParser : IScoped
+    public class PriorityParser : IPriorityParser
     {
         public string ParsePriority(string raw)
         {

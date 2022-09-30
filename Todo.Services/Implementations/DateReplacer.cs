@@ -1,9 +1,9 @@
 using System;
-using Todo.WebAPI.Domain;
+using Todo.Core;
 
-namespace Todo.WebAPI.Services
+namespace Todo.Services.Implementations
 {
-    public class DateReplacer : IScoped
+    public class DateReplacer : IDateReplacer
     {
         public string ReplaceDue(string raw, DateTime oldDate, DateTime newDate) =>
             Replace(raw, "due:", oldDate, newDate);

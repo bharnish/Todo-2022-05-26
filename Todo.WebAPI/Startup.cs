@@ -1,3 +1,5 @@
+using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using Amazon.DynamoDBv2;
@@ -8,8 +10,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Todo.WebAPI.Domain;
-using Todo.WebAPI.Services;
+using Todo.Core;
+using Todo.Data;
+using Todo.Services;
+using Todo.Services.Implementations;
 
 namespace Todo.WebAPI
 {
@@ -32,21 +36,37 @@ namespace Todo.WebAPI
             services.AddScoped<IDynamoDBContext, DynamoDBContext>();
             services.AddScoped<IAmazonDynamoDB, AmazonDynamoDBClient>();
 
-            services.AddScoped<IDateTimeProvider, EdtDateTimeProvider>();
+            services.AddScoped<IDateTimeProvider, DateTimeProvider>();
 
-            ScanForScoped(services, GetType().Assembly);
+            services.AddSingleton<IContextParser, ContextParser>();
+
+            services.AddScoped<IRepo, CryptoRepo>();
+
+            ScanForDefaultInterface(services, GetType().Assembly);
+            ScanForDefaultInterface(services, typeof(ITodoParser).Assembly);
         }
 
-        private void ScanForScoped(IServiceCollection services, Assembly assembly)
+        private void ScanForDefaultInterface(IServiceCollection services, Assembly assembly)
         {
             var types =
                 assembly
                     .GetTypes()
                     .Where(t => t.IsClass)
-                    .Where(t => t.GetInterface(nameof(IScoped)) != null);
+                    .Where(t => GetDefaultInterface(t) != null);
 
             foreach (var type in types)
-                services.AddScoped(type);
+            {
+                var defaultInterface = GetDefaultInterface(type);
+                if (defaultInterface == null) continue;
+                
+                var isScoped = type.GetInterface(nameof(IScoped)) != null;
+                if (isScoped)
+                    services.AddScoped(defaultInterface, type);
+                else
+                    services.AddSingleton(defaultInterface, type);
+            }
+
+            Type GetDefaultInterface(Type t) => t.GetInterface("I" + t.Name);
         }
 
 

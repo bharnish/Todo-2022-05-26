@@ -1,13 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Todo.WebAPI.Domain;
 using Todo.WebAPI.DTOs;
 
 namespace Todo.WebAPI.Services
 {
-    public class TodoFilter : IScoped
+    public class TodoFilter : ITodoFilter
     {
-        public IEnumerable<Domain.Todo> Filter(IEnumerable<Domain.Todo> todos, FilterOptionsDTO options)
+        public IEnumerable<Data.Todo> Filter(IEnumerable<Data.Todo> todos, FilterOptionsDTO options)
         {
             if (!string.IsNullOrEmpty(options.Filters))
             {

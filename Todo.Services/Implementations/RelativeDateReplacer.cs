@@ -1,17 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using Todo.WebAPI.Domain;
+using Todo.Core;
+using Todo.Data;
 
-namespace Todo.WebAPI.Services
+namespace Todo.Services.Implementations
 {
-    public class RelativeDateReplacer : IScoped
+    public class RelativeDateReplacer : IScoped, IRelativeDateReplacer
     {
         private readonly IDateTimeProvider _dateTimeProvider;
-        private readonly DateReplacer _dateReplacer;
-        private readonly DateParser _dateParser;
+        private readonly IDateReplacer _dateReplacer;
+        private readonly IDateParser _dateParser;
 
-        public RelativeDateReplacer(IDateTimeProvider dateTimeProvider, DateReplacer dateReplacer, DateParser dateParser)
+        public RelativeDateReplacer(IDateTimeProvider dateTimeProvider, IDateReplacer dateReplacer, IDateParser dateParser)
         {
             _dateTimeProvider = dateTimeProvider;
             _dateReplacer = dateReplacer;
@@ -24,12 +24,8 @@ namespace Todo.WebAPI.Services
 
             var today = _dateTimeProvider.Today;
             raw = ReplaceText(raw, "today", today);
-
-            var tomorrow = today.AddDays(1);
-            raw = ReplaceText(raw, "tomorrow", tomorrow);
-
-            var yesterday = today.AddDays(-1);
-            raw = ReplaceText(raw, "yesterday", yesterday);
+            raw = ReplaceText(raw, "tomorrow", today.AddDays(1));
+            raw = ReplaceText(raw, "yesterday", today.AddDays(-1));
 
             raw = ReplaceDOW(raw, "monday", Next(DayOfWeek.Monday));
             raw = ReplaceDOW(raw, "tuesday", Next(DayOfWeek.Tuesday));

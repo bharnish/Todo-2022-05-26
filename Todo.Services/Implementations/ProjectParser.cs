@@ -1,15 +1,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Todo.WebAPI.Domain;
+using Todo.Core;
 
-namespace Todo.WebAPI.Services
+namespace Todo.Services.Implementations
 {
-    public class ContextParser : IScoped
+    public class ProjectParser : IProjectParser
     {
         public IEnumerable<string> Parse(string raw)
         {
-            var regex = new Regex(Patterns.ContextPattern);
+            var regex = new Regex(Patterns.ProjectPattern);
 
             var contexts = regex.Matches(raw).Select(x => x.Value.Trim());
 

@@ -1,10 +1,10 @@
 using System;
 
-namespace Todo.WebAPI.Services
+namespace Todo.Services
 {
     public interface IDateTimeProvider
     {
-        public DateTime Today { get; }
+        public DateTime Today => Now.Date;
         public DateTime Now { get; }
     }
 }

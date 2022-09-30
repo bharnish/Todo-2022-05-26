@@ -1,4 +1,4 @@
-namespace Todo.WebAPI.Domain
+namespace Todo.Core
 {
     public interface IScoped { }
 }

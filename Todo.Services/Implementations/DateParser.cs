@@ -1,10 +1,10 @@
 using System;
 using System.Text.RegularExpressions;
-using Todo.WebAPI.Domain;
+using Todo.Core;
 
-namespace Todo.WebAPI.Services
+namespace Todo.Services.Implementations
 {
-    public class DateParser : IScoped
+    public class DateParser : IDateParser
     {
         public DateTime? ParseDueDate(string raw)
         {

@@ -1,9 +1,10 @@
 ﻿using System.Text.RegularExpressions;
-using Todo.WebAPI.Domain;
+using Todo.Core;
+using Todo.Data;
 
-namespace Todo.WebAPI.Services
+namespace Todo.Services.Implementations
 {
-    public class TodoNextProcessor : IScoped
+    public class TodoNextProcessor : ITodoNextProcessor
     {
         public DBRecord TodoNext(DBRecord rec)
         {

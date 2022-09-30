@@ -1,16 +1,16 @@
 using System;
-using System.Linq;
 using System.Text.RegularExpressions;
-using Todo.WebAPI.Domain;
+using Todo.Core;
+using Todo.Data;
 
-namespace Todo.WebAPI.Services
+namespace Todo.Services.Implementations
 {
-    public class Recurer : IScoped
+    public class Recurer : IRecurer
     {
-        private readonly DateParser _dateParser;
-        private readonly DateReplacer _dateReplacer;
+        private readonly IDateParser _dateParser;
+        private readonly IDateReplacer _dateReplacer;
 
-        public Recurer(DateParser dateParser, DateReplacer dateReplacer)
+        public Recurer(IDateParser dateParser, IDateReplacer dateReplacer)
         {
             _dateParser = dateParser;
             _dateReplacer = dateReplacer;
