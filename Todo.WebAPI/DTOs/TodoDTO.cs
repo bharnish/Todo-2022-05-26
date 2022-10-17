@@ -13,6 +13,7 @@ namespace Todo.WebAPI.DTOs
 
         public bool IsCompleted { get; set; }
 
+        public string Priority { get; set; }
         public bool HasPriority { get; set; }
 
         public bool IsWaitingFor { get; set; }

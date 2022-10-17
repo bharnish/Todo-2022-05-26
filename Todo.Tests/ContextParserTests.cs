@@ -1,12 +1,13 @@
 using System.Collections.Generic;
 using NUnit.Framework;
+using Todo.Services;
 using Todo.Services.Implementations;
 
 namespace Todo.Tests
 {
     public class ContextParserTests
     {
-        private ContextParser _contextParser;
+        private IContextParser _contextParser;
 
         [SetUp]
         public void Setup()

@@ -1,3 +1,5 @@
+using System;
+using Moq;
 using NUnit.Framework;
 using Todo.Data;
 using Todo.Services;
@@ -13,7 +15,7 @@ namespace Todo.Tests
         [SetUp]
         public void Setup()
         {
-            _dateTimeProvider = new TestDateTimeProvider();
+            _dateTimeProvider = Mock.Of<IDateTimeProvider>(dtp => dtp.Now == DateTime.Now);
             _completer = new Completer(_dateTimeProvider);
         }
 

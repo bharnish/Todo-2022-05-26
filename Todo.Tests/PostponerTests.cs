@@ -12,6 +12,7 @@ namespace Todo.Tests
         [SetUp]
         public void Setup()
         {
+
             _postponer = new Postponer(new DateParser(), new DateReplacer());
         }
 
