@@ -270,5 +270,21 @@ namespace Todo.WebAPI.Controllers
 
             return gs;
         }
+
+        [HttpGet("contexts")]
+        public async Task<IEnumerable<string>> GetContexts()
+        {
+            var s = await _repo.Load(DbKey);
+            var todos = s.Select(_parser.Parse).ToList();
+            return todos.SelectMany(t => t.Contexts).Select(x => x.ToLower()).Distinct();
+        }
+
+        [HttpGet("projects")]
+        public async Task<IEnumerable<string>> GetProjects()
+        {
+            var s = await _repo.Load(DbKey);
+            var todos = s.Select(_parser.Parse).ToList();
+            return todos.SelectMany(t => t.Projects).Select(x => x.ToLower()).Distinct();
+        }
     }
 }

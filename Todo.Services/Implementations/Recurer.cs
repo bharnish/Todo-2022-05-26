@@ -5,15 +5,17 @@ using Todo.Data;
 
 namespace Todo.Services.Implementations
 {
-    public class Recurer : IRecurer
+    public class Recurer : IRecurer, IScoped
     {
         private readonly IDateParser _dateParser;
         private readonly IDateReplacer _dateReplacer;
+        private readonly IDateTimeProvider _dateTimeProvider;
 
-        public Recurer(IDateParser dateParser, IDateReplacer dateReplacer)
+        public Recurer(IDateParser dateParser, IDateReplacer dateReplacer, IDateTimeProvider dateTimeProvider)
         {
             _dateParser = dateParser;
             _dateReplacer = dateReplacer;
+            _dateTimeProvider = dateTimeProvider;
         }
 
         public DBRecord Recur(DBRecord rec)
@@ -45,7 +47,7 @@ namespace Todo.Services.Implementations
         private DateTime AdvanceDate(DateTime date, (bool strict, int num, char period) recurTraits)
         {
             if (!recurTraits.strict)
-                date = DateTime.Today;
+                date = _dateTimeProvider.Today;
 
             return recurTraits.period switch
             {

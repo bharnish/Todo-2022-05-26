@@ -40,8 +40,11 @@ namespace Todo.WebAPI
 
             services.AddSingleton<IContextParser, ContextParser>();
 
+#if DEBUG
+            services.AddScoped<IRepo, NormalRepo>();
+#else
             services.AddScoped<IRepo, CryptoRepo>();
-
+#endif
             ScanForDefaultInterface(services, GetType().Assembly);
             ScanForDefaultInterface(services, typeof(ITodoParser).Assembly);
         }
